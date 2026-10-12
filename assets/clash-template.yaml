@@ -1,0 +1,282 @@
+# Clash Verge 配置 (mihomo 内核)
+# 兼容桌面（系统代理）和手机（TUN/VPN）双模式
+#
+# 使用方法：替换所有 __PLACEHOLDER__ 占位符后导入 Clash Verge
+# __SERVER_IP__          → 服务器公网 IP
+# __HY2_PORT__           → Hysteria2 的 UDP 端口
+# __HY2_PASSWORD__       → Hysteria2 认证密码
+# __VLESS_PORT__         → VLESS 的 TCP 端口
+# __VLESS_UUID__         → VLESS UUID
+# __REALITY_PUBLIC_KEY__ → REALITY x25519 公钥
+# __REALITY_SHORT_ID__   → REALITY Short ID
+
+mixed-port: 7890
+allow-lan: false
+mode: rule
+log-level: info
+unified-delay: true
+tcp-concurrent: true
+find-process-mode: strict
+
+geodata-mode: true
+geox-url:
+  geoip: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+  geosite: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  mmdb: "https://cdn.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
+
+# ============================================================
+#  DNS 配置 — 对齐 mihomo 社区主流方案
+#  架构：nameserver-policy 前置分流，不使用 fallback
+#  原理：fake-ip 下代理域名由远端解析，本地只需为直连域名
+#       返回正确 IP → 全部使用国内 DoH，零海外 DNS 依赖
+# ============================================================
+dns:
+  enable: true
+  listen: "0.0.0.0:1053"
+  ipv6: false
+  prefer-h3: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 28.0.0.1/8
+  use-hosts: true
+  use-system-hosts: true
+  fake-ip-filter:
+    # ---- 通用保留域 ----
+    - "*.lan"
+    - "*.localdomain"
+    - "*.example"
+    - "*.invalid"
+    - "*.localhost"
+    - "*.test"
+    - "*.local"
+    - "*.home.arpa"
+    # ---- NTP ----
+    - "time.*.com"
+    - "time.*.gov"
+    - "time.*.edu.cn"
+    - "time.*.apple.com"
+    - "time1.*.com"
+    - "time2.*.com"
+    - "time3.*.com"
+    - "time4.*.com"
+    - "ntp.*.com"
+    - "ntp1.*.com"
+    - "ntp2.*.com"
+    - "*.time.edu.cn"
+    - "*.ntp.org.cn"
+    - "+.pool.ntp.org"
+    - "time1.cloud.tencent.com"
+    - "ntp.aliyun.com"
+    # ---- Windows 网络探测 ----
+    - "+.msftconnecttest.com"
+    - "+.msftncsi.com"
+    # ---- Android 网络探测 ----
+    - "+.connectivitycheck.gstatic.com"
+    - "+.connectivitycheck.android.com"
+    - "+.clients3.google.com"
+    # ---- iOS 网络探测 ----
+    - "+.captive.apple.com"
+    - "+.gsp-ssl.ls.apple.com"
+    - "+.gsp-ssl.ls-apple.com.akadns.net"
+    # ---- Apple 系统服务 ----
+    - "+.push.apple.com"
+    - "mesu.apple.com"
+    - "swscan.apple.com"
+    - "swquery.apple.com"
+    - "swdownload.apple.com"
+    - "swcdn.apple.com"
+    - "swdist.apple.com"
+    # ---- 国内音乐 App（SDK 需真实 IP） ----
+    - "music.163.com"
+    - "*.music.163.com"
+    - "*.126.net"
+    - "y.qq.com"
+    - "*.y.qq.com"
+    - "streamoc.music.tc.qq.com"
+    - "mobileoc.music.tc.qq.com"
+    - "isure.stream.qqmusic.qq.com"
+    - "dl.stream.qqmusic.qq.com"
+    - "aqqmusic.tc.qq.com"
+    - "amobile.music.tc.qq.com"
+    - "*.xiami.com"
+    - "*.music.migu.cn"
+    - "music.migu.cn"
+    - "musicapi.taihe.com"
+    - "music.taihe.com"
+    - "songsearch.kugou.com"
+    - "trackercdn.kugou.com"
+    - "*.kuwo.cn"
+    # ---- 国内 App 登录 / 推送 ----
+    - "localhost.ptlogin2.qq.com"
+    - "localhost.sec.qq.com"
+    - "+.dingtalk.com"
+    - "+.yunos.com"
+    - "*.189.cn"
+    - "*.10010.com"
+    - "*.10086.cn"
+    # ---- STUN / P2P ----
+    - "stun.*.*"
+    - "stun.*.*.*"
+    - "+.stun.*.*"
+    - "+.stun.*.*.*"
+    - "+.stun.*.*.*.*"
+    - "stun.l.google.com"
+    - "lens.l.google.com"
+    # ---- 游戏平台 ----
+    - "+.srv.nintendo.net"
+    - "+.stun.playstation.net"
+    - "xbox.*.microsoft.com"
+    - "xnotify.xboxlive.com"
+    - "+.battlenet.com.cn"
+    - "+.wotgame.cn"
+    - "+.wggames.cn"
+    - "+.wowsgame.cn"
+    - "+.wargaming.net"
+    # ---- 其他 ----
+    - "+.ipv6.microsoft.com"
+    - "heartbeat.belkin.com"
+    - "*.linksys.com"
+    - "*.linksyssmartwifi.com"
+    - "*.router.asus.com"
+    - "proxy.golang.org"
+    - "*.mcdn.bilivideo.cn"
+    - "+.media.dssott.com"
+    - "+.pvp.net"
+
+  # Bootstrap：纯 IP，仅用于解析域名形式的 DoH 地址（如 doh.pub）
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+
+  # 主 DNS：IP 形式 DoH 在前（零 bootstrap 依赖），域名形式在后
+  nameserver:
+    - "https://223.5.5.5/dns-query"
+    - "https://120.53.53.53/dns-query"
+    - "https://doh.pub/dns-query"
+    - "https://dns.alidns.com/dns-query"
+
+  # CN 域名强制走国内 DNS
+  nameserver-policy:
+    "geosite:cn,private":
+      - "https://223.5.5.5/dns-query"
+      - "https://120.53.53.53/dns-query"
+
+  # 解析代理服务器自身的域名（避免鸡生蛋问题）
+  proxy-server-nameserver:
+    - "https://223.5.5.5/dns-query"
+    - "https://120.53.53.53/dns-query"
+
+  # 直连域名回查真实 IP
+  direct-nameserver:
+    - "https://223.5.5.5/dns-query"
+    - "https://120.53.53.53/dns-query"
+
+  # 现代方案不使用 fallback — nameserver-policy 已前置分流
+
+# ============================================================
+#  代理节点
+# ============================================================
+proxies:
+  - name: "🚀 Hysteria2"
+    type: hysteria2
+    server: __SERVER_IP__
+    port: __HY2_PORT__
+    password: "__HY2_PASSWORD__"
+    skip-cert-verify: true
+    sni: bing.com
+
+  - name: "🛡️ VLESS-REALITY"
+    type: vless
+    server: __SERVER_IP__
+    port: __VLESS_PORT__
+    uuid: "__VLESS_UUID__"
+    network: tcp
+    tls: true
+    udp: true
+    flow: xtls-rprx-vision
+    servername: www.microsoft.com
+    reality-opts:
+      public-key: "__REALITY_PUBLIC_KEY__"
+      short-id: "__REALITY_SHORT_ID__"
+    client-fingerprint: chrome
+
+  - name: "🧦 SOCKS5"
+    type: socks5
+    server: __SERVER_IP__
+    port: __SOCKS5_PORT__
+    username: "__PROXY_USER__"
+    password: "__PROXY_PASS__"
+    udp: true
+
+  - name: "🌐 HTTP"
+    type: http
+    server: __SERVER_IP__
+    port: __HTTP_PORT__
+    username: "__PROXY_USER__"
+    password: "__PROXY_PASS__"
+
+  - name: "🔐 HTTPS"
+    type: http
+    server: __SERVER_IP__
+    port: __HTTPS_PORT__
+    username: "__PROXY_USER__"
+    password: "__PROXY_PASS__"
+    tls: true
+    skip-cert-verify: true
+
+# ============================================================
+#  代理组
+# ============================================================
+proxy-groups:
+  - name: "🌍 代理"
+    type: select
+    proxies:
+      - "⚡ 自动"
+      - "🚀 Hysteria2"
+      - "🛡️ VLESS-REALITY"
+      - "🧦 SOCKS5"
+      - "🌐 HTTP"
+      - "🔐 HTTPS"
+      - DIRECT
+
+  - name: "⚡ 自动"
+    type: url-test
+    proxies:
+      - "🚀 Hysteria2"
+      - "🛡️ VLESS-REALITY"
+      - "🧦 SOCKS5"
+      - "🌐 HTTP"
+      - "🔐 HTTPS"
+    url: "https://www.gstatic.com/generate_204"
+    interval: 300
+    tolerance: 50
+
+# ============================================================
+#  分流规则
+#  逻辑：国内直连 → 海外走代理 → 未匹配兜底走代理
+#  如需为特定域名走代理，追加在「自定义精确规则」区块内
+# ============================================================
+rules:
+  # ---- 直连 ----
+  - GEOSITE,private,DIRECT
+  - GEOIP,private,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,cn,DIRECT
+  - GEOSITE,cn,DIRECT
+  - GEOIP,cn,DIRECT,no-resolve
+
+  # ---- 自定义精确规则（按需追加） ----
+  # 示例：Claude / Anthropic
+  # - DOMAIN-SUFFIX,claude.ai,🌍 代理
+  # - DOMAIN-SUFFIX,anthropic.com,🌍 代理
+
+  # ---- 常用海外站（GeoSite 规则集） ----
+  - GEOSITE,google,🌍 代理
+  - GEOSITE,github,🌍 代理
+  - GEOSITE,twitter,🌍 代理
+  - GEOSITE,facebook,🌍 代理
+  - GEOSITE,telegram,🌍 代理
+  - GEOSITE,netflix,🌍 代理
+  - GEOSITE,spotify,🌍 代理
+  - GEOSITE,geolocation-!cn,🌍 代理
+
+  # ---- 兜底 ----
+  - MATCH,🌍 代理

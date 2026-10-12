@@ -1,0 +1,4 @@
+interface:
+  display_name: "Proxy Server Setup"
+  short_description: "Deploy Hysteria2 + VLESS-REALITY proxy"
+  default_prompt: "Help me deploy a proxy server with Hysteria2 and VLESS+REALITY, then generate a Clash Verge config file"
